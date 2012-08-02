@@ -1,7 +1,17 @@
 /*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
+ * Copyright 2012, Mozilla Foundation and contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 var mozl10n = {};
@@ -45,107 +55,48 @@ var mozl10n = {};
 
 define(function(require, exports, module) {
 
+  // Internal startup process. Not exported
+  require('gcli/types/basic').startup();
+  require('gcli/types/command').startup();
+  require('gcli/types/javascript').startup();
+  require('gcli/types/node').startup();
+  require('gcli/types/resource').startup();
+  require('gcli/types/setting').startup();
+  require('gcli/types/selection').startup();
+
+  require('gcli/settings').startup();
+  require('gcli/ui/intro').startup();
+  require('gcli/ui/focus').startup();
+  require('gcli/ui/fields/basic').startup();
+  require('gcli/ui/fields/javascript').startup();
+  require('gcli/ui/fields/selection').startup();
+
+  require('gcli/commands/help').startup();
+  require('gcli/commands/pref').startup();
+
   // The API for use by command authors
   exports.addCommand = require('gcli/canon').addCommand;
   exports.removeCommand = require('gcli/canon').removeCommand;
   exports.lookup = mozl10n.lookup;
   exports.lookupFormat = mozl10n.lookupFormat;
 
-  // Internal startup process. Not exported
-  require('gcli/types/basic').startup();
-  require('gcli/types/javascript').startup();
-  require('gcli/types/node').startup();
-  require('gcli/cli').startup();
-
-  var Requisition = require('gcli/cli').Requisition;
-  var cli = require('gcli/cli');
-  var Inputter = require('gcli/ui/inputter').Inputter;
-  var ArgFetcher = require('gcli/ui/arg_fetch').ArgFetcher;
-  var CommandMenu = require('gcli/ui/menu').CommandMenu;
-  var FocusManager = require('gcli/ui/focus').FocusManager;
-
-  var jstype = require('gcli/types/javascript');
-  var nodetype = require('gcli/types/node');
-
   /**
-   * API for use by HUDService only.
    * This code is internal and subject to change without notice.
+   * createView() for Firefox requires an options object with the following
+   * members:
+   * - contentDocument: From the window of the attached tab
+   * - chromeDocument: GCLITerm.document
+   * - environment.hudId: GCLITerm.hudId
+   * - jsEnvironment.globalObject: 'window'
+   * - jsEnvironment.evalFunction: 'eval' in a sandbox
+   * - inputElement: GCLITerm.inputNode
+   * - completeElement: GCLITerm.completeNode
+   * - hintElement: GCLITerm.hintNode
+   * - inputBackgroundElement: GCLITerm.inputStack
    */
-  exports._internal = {
-    require: require,
-    define: define,
-    console: console,
-
-    /**
-     * createView() for Firefox requires an options object with the following
-     * members:
-     * - contentDocument: From the window of the attached tab
-     * - chromeDocument: GCLITerm.document
-     * - environment.hudId: GCLITerm.hudId
-     * - jsEnvironment.globalObject: 'window'
-     * - jsEnvironment.evalFunction: 'eval' in a sandbox
-     * - inputElement: GCLITerm.inputNode
-     * - completeElement: GCLITerm.completeNode
-     * - gcliTerm: GCLITerm
-     * - hintElement: GCLITerm.hintNode
-     * - inputBackgroundElement: GCLITerm.inputStack
-     */
-    createView: function(opts) {
-      opts.autoHide = true;
-      opts.requisition = new Requisition(opts.environment, opts.chromeDocument);
-      opts.completionPrompt = '';
-
-      jstype.setGlobalObject(opts.jsEnvironment.globalObject);
-      nodetype.setDocument(opts.contentDocument);
-      cli.setEvalFunction(opts.jsEnvironment.evalFunction);
-
-      // Create a FocusManager for the various parts to register with
-      if (!opts.focusManager) {
-        opts.debug = true;
-        opts.focusManager = new FocusManager({ document: opts.chromeDocument });
-      }
-
-      opts.inputter = new Inputter(opts);
-      opts.inputter.update();
-      if (opts.gcliTerm) {
-        opts.focusManager.onFocus.add(opts.gcliTerm.show, opts.gcliTerm);
-        opts.focusManager.onBlur.add(opts.gcliTerm.hide, opts.gcliTerm);
-        opts.focusManager.addMonitoredElement(opts.gcliTerm.hintNode, 'gcliTerm');
-      }
-
-      if (opts.hintElement) {
-        opts.menu = new CommandMenu(opts.chromeDocument, opts.requisition);
-        opts.hintElement.appendChild(opts.menu.element);
-
-        opts.argFetcher = new ArgFetcher(opts.chromeDocument, opts.requisition);
-        opts.hintElement.appendChild(opts.argFetcher.element);
-
-        opts.menu.onCommandChange();
-      }
-    },
-
-    /**
-     * Undo the effects of createView() to prevent memory leaks
-     */
-    removeView: function(opts) {
-      opts.hintElement.removeChild(opts.menu.element);
-      opts.menu.destroy();
-      opts.hintElement.removeChild(opts.argFetcher.element);
-      opts.argFetcher.destroy();
-
-      opts.inputter.destroy();
-      opts.focusManager.removeMonitoredElement(opts.gcliTerm.hintNode, 'gcliTerm');
-      opts.focusManager.onFocus.remove(opts.gcliTerm.show, opts.gcliTerm);
-      opts.focusManager.onBlur.remove(opts.gcliTerm.hide, opts.gcliTerm);
-      opts.focusManager.destroy();
-
-      cli.unsetEvalFunction();
-      nodetype.unsetDocument();
-      jstype.unsetGlobalObject();
-
-      opts.requisition.destroy();
-    },
-
-    commandOutputManager: require('gcli/canon').commandOutputManager
+  exports.createDisplay = function(opts) {
+    var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
+    return new FFDisplay(opts);
   };
+
 });
