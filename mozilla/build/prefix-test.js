@@ -1,7 +1,17 @@
 /*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
+ * Copyright 2012, Mozilla Foundation and contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /*
@@ -19,7 +29,7 @@
  *
  * This test file is generated using a level 25 wizard spell cast on the
  * test files that run in the browser as part of GCLI's test suite.
- * For details of how to cast the spell, see GCLI's Makefile.dryice.js
+ * For details of how to cast the spell, see GCLI's gcli.js
  *
  * For more information on GCLI see:
  * - https://github.com/mozilla/gcli/blob/master/docs/index.md
@@ -42,9 +52,20 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-var obj = {};
-Components.utils.import("resource:///modules/gcli.jsm", obj);
+let [ define, require ] = (function() {
+  let tempScope = {};
+  Components.utils.import("resource://gre/modules/devtools/Require.jsm", tempScope);
+  return [ tempScope.define, tempScope.require ];
+})();
 
-var define = obj.gcli._internal.define;
-var console = obj.gcli._internal.console;
-var Node = Components.interfaces.nsIDOMNode;
+let console = (function() {
+  let tempScope = {};
+  Components.utils.import("resource://gre/modules/devtools/Console.jsm", tempScope);
+  return console;
+})();
+
+registerCleanupFunction(function tearDown() {
+  define = undefined;
+  require = undefined;
+  console = undefined;
+});
